@@ -1,0 +1,17 @@
+{
+  "name": "Mini Golf Score",
+  "short_name": "MiniGolf",
+  "description": "Offline-first mini golf scoring with saved courses and round history.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f3",
+  "theme_color": "#137a4b",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

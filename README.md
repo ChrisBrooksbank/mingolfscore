@@ -2,6 +2,10 @@
 
 Mini Golf Score is an offline-first Progressive Web App for scoring mini golf rounds. It is built for fast one-handed scoring on mobile, with saved courses, flexible players and holes, round history, and shareable results.
 
+## Live App
+
+https://mingolfscore.netlify.app
+
 ## Features
 
 - Progressive Web App with installable metadata and service worker.

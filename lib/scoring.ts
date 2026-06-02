@@ -166,6 +166,31 @@ export function formatDelta(delta: number) {
   return delta > 0 ? `+${delta}` : `${delta}`;
 }
 
+export function formatScorecardShare(round: Round) {
+  const totals = sortedTotals(round);
+  const coursePar = round.courseSnapshot.holes.reduce((sum, hole) => sum + hole.par, 0);
+  const lines = [
+    `${round.courseSnapshot.name} scorecard`,
+    `${round.courseSnapshot.holeCount} holes, par ${coursePar}`,
+    "",
+    "Results",
+    ...totals.map(
+      (total) =>
+        `#${total.rank} ${total.player.name}: ${total.total} (${formatDelta(total.parDelta)}, ${total.scoredHoles}/${round.courseSnapshot.holeCount} holes)`,
+    ),
+    "",
+    "Hole scores",
+    ...totals.map((total) => {
+      const scores = round.courseSnapshot.holes
+        .map((hole) => `H${hole.number}:${getScore(round, total.player.id, hole.number) ?? "-"}`)
+        .join(" ");
+      return `${total.player.name}: ${scores}`;
+    }),
+  ];
+
+  return lines.join("\n");
+}
+
 export function createDefaultHoles(holeCount: number, par = 3) {
   return Array.from({ length: holeCount }, (_, index) => ({
     number: index + 1,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Copy, RotateCcw, Trophy } from "lucide-react";
-import { generateAwards, sortedTotals } from "@/lib/scoring";
+import { formatScorecardShare, generateAwards, sortedTotals } from "@/lib/scoring";
 import { useRound } from "@/lib/hooks";
 
 export function ResultsClient({ roundId }: { roundId: string }) {
@@ -13,7 +13,7 @@ export function ResultsClient({ roundId }: { roundId: string }) {
   const totals = sortedTotals(round);
   const awards = generateAwards(round);
   const winner = totals[0];
-  const summary = `${round.courseSnapshot.name}: ${totals.map((total) => `${total.player.name} ${total.total}`).join(", ")}`;
+  const summary = formatScorecardShare(round);
 
   async function share() {
     if (navigator.share) {
@@ -42,8 +42,8 @@ export function ResultsClient({ roundId }: { roundId: string }) {
       <div className="grid">
         {totals.map((total) => (
           <div className="card" key={total.player.id}>
-            <h2>#{total.rank} {total.player.name}</h2>
-            <p className="hole-number">{total.total}</p>
+            <h2 className={total.rank === 1 ? "winner-name" : ""}>#{total.rank} {total.player.name}</h2>
+            <p className={total.rank === 1 ? "hole-number winner-score" : "hole-number"}>{total.total}</p>
             <p className="muted">{total.holeInOnes} aces · {total.scoredHoles} holes</p>
           </div>
         ))}

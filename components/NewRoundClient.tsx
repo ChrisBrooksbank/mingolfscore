@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { createDefaultHoles } from "@/lib/scoring";
 import { db, nowIso, playerColor, uid } from "@/lib/db";
+import { DEFAULT_COURSE_ID } from "@/lib/defaultCourse";
 import { useCourses, usePlayers } from "@/lib/hooks";
 import type { Course, Player, Round, RoundPlayer } from "@/lib/types";
 
@@ -13,7 +14,7 @@ function NewRoundInner() {
   const searchParams = useSearchParams();
   const courses = useCourses();
   const savedPlayers = usePlayers();
-  const [selectedCourseId, setSelectedCourseId] = useState(searchParams.get("course") ?? "custom");
+  const [selectedCourseId, setSelectedCourseId] = useState(searchParams.get("course") ?? DEFAULT_COURSE_ID);
   const [courseName, setCourseName] = useState("New Course");
   const [holeCount, setHoleCount] = useState(18);
   const [defaultPar, setDefaultPar] = useState(3);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Course, Player, Round } from "@/lib/types";
 import { db } from "@/lib/db";
+import { ensureDefaultCourse } from "@/lib/defaultCourse";
 
 export function useRounds() {
   const [rounds, setRounds] = useState<Round[]>([]);
@@ -25,11 +26,13 @@ export function useCourses(includeArchived = false) {
 
   useEffect(() => {
     let mounted = true;
-    db.courses.orderBy("updatedAt").reverse().toArray().then((items) => {
-      if (mounted) {
-        setCourses(includeArchived ? items : items.filter((course) => course.status === "active"));
-      }
-    });
+    ensureDefaultCourse()
+      .then(() => db.courses.orderBy("updatedAt").reverse().toArray())
+      .then((items) => {
+        if (mounted) {
+          setCourses(includeArchived ? items : items.filter((course) => course.status === "active"));
+        }
+      });
     return () => {
       mounted = false;
     };

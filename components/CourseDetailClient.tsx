@@ -27,7 +27,15 @@ export function CourseDetailClient({ courseId }: { courseId: string }) {
   }
 
   if (editing) {
-    return <CourseForm initialCourse={course} />;
+    return (
+      <CourseForm
+        initialCourse={course}
+        onSaved={(saved) => {
+          setCourse(saved);
+          setEditing(false);
+        }}
+      />
+    );
   }
 
   const courseRounds = rounds.filter((round) => round.courseId === course.id && round.status === "complete");

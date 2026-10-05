@@ -37,7 +37,7 @@ export function setScore(
 }
 
 export function calculateTotals(round: Round): PlayerTotal[] {
-  const rawTotals = round.players.map((player) => {
+  const rawTotals: PlayerTotal[] = round.players.map((player) => {
     let total = 0;
     let scoredHoles = 0;
     let parDelta = 0;
@@ -66,27 +66,24 @@ export function calculateTotals(round: Round): PlayerTotal[] {
     };
   });
 
-  const ranked = [...rawTotals].sort((a, b) => {
+  // Rank on strokes relative to par for the holes actually played, so a player who
+  // has not scored yet (total 0) does not lead mid-round. On a finished card this
+  // orders players exactly as raw totals would.
+  const compare = (a: PlayerTotal, b: PlayerTotal) => {
+    if ((a.scoredHoles === 0) !== (b.scoredHoles === 0)) return a.scoredHoles === 0 ? 1 : -1;
+    if (a.parDelta !== b.parDelta) return a.parDelta - b.parDelta;
     if (a.total !== b.total) return a.total - b.total;
     return b.scoredHoles - a.scoredHoles;
-  });
+  };
 
-  let previousTotal: number | null = null;
-  let previousScored: number | null = null;
-  let previousRank = 0;
+  const ranked = [...rawTotals].sort(compare);
 
   ranked.forEach((item, index) => {
-    const rank =
-      previousTotal === item.total && previousScored === item.scoredHoles
-        ? previousRank
-        : index + 1;
-    item.rank = rank;
-    previousRank = rank;
-    previousTotal = item.total;
-    previousScored = item.scoredHoles;
+    const previous = ranked[index - 1];
+    item.rank = previous && compare(previous, item) === 0 ? previous.rank : index + 1;
   });
 
-  return rawTotals.map((total) => ranked.find((item) => item.player.id === total.player.id) ?? total);
+  return rawTotals;
 }
 
 export function isRoundComplete(round: Round) {
@@ -151,7 +148,7 @@ export function generateAwards(round: Round): RoundAward[] {
   }
 
   const tightGap = totals.length > 1 ? totals[1].total - totals[0].total : null;
-  if (tightGap !== null && tightGap <= 2) {
+  if (tightGap !== null && tightGap > 0 && tightGap <= 2) {
     awards.push({
       title: "Photo finish",
       detail: `Only ${tightGap} stroke${tightGap === 1 ? "" : "s"} separated first and second.`,
@@ -189,6 +186,14 @@ export function formatScorecardShare(round: Round) {
   ];
 
   return lines.join("\n");
+}
+
+/** Parse a numeric input value, ignoring blank/invalid entries so a field can be retyped. */
+export function parseBoundedInt(value: string, min: number, max: number): number | null {
+  if (value.trim() === "") return null;
+  const parsed = Math.round(Number(value));
+  if (!Number.isFinite(parsed)) return null;
+  return Math.max(min, Math.min(max, parsed));
 }
 
 export function createDefaultHoles(holeCount: number, par = 3) {

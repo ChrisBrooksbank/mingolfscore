@@ -2,16 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Save, Trash2 } from "lucide-react";
-import { createDefaultHoles } from "@/lib/scoring";
+import { Archive, Copy, Save } from "lucide-react";
+import { createDefaultHoles, parseBoundedInt } from "@/lib/scoring";
 import type { Course, Hole } from "@/lib/types";
 import { db, nowIso, uid } from "@/lib/db";
 
 type Props = {
   initialCourse?: Course;
+  /** Called after saving instead of navigating, e.g. when editing in place on the course page. */
+  onSaved?: (course: Course) => void;
 };
 
-export function CourseForm({ initialCourse }: Props) {
+export function CourseForm({ initialCourse, onSaved }: Props) {
   const router = useRouter();
   const [name, setName] = useState(initialCourse?.name ?? "");
   const [location, setLocation] = useState(initialCourse?.location ?? "");
@@ -21,8 +23,9 @@ export function CourseForm({ initialCourse }: Props) {
 
   const visibleHoles = useMemo(() => holes.slice(0, holeCount), [holes, holeCount]);
 
-  function changeHoleCount(nextCount: number) {
-    const count = Math.max(1, Math.min(36, nextCount));
+  function changeHoleCount(value: string) {
+    const count = parseBoundedInt(value, 1, 36);
+    if (count === null) return;
     setHoleCount(count);
     setHoles((current) => {
       const next = [...current];
@@ -62,7 +65,11 @@ export function CourseForm({ initialCourse }: Props) {
       updatedAt: now,
     };
     await db.courses.put(course);
-    router.push(`/courses/${course.id}`);
+    if (onSaved) {
+      onSaved(course);
+    } else {
+      router.push(`/courses/${course.id}`);
+    }
   }
 
   async function archiveCourse() {
@@ -126,7 +133,7 @@ export function CourseForm({ initialCourse }: Props) {
             min={1}
             max={36}
             value={holeCount}
-            onChange={(event) => changeHoleCount(Number(event.target.value))}
+            onChange={(event) => changeHoleCount(event.target.value)}
           />
         </div>
 
@@ -153,7 +160,10 @@ export function CourseForm({ initialCourse }: Props) {
                   min={1}
                   max={9}
                   value={hole.par}
-                  onChange={(event) => updateHole(index, { par: Number(event.target.value) })}
+                  onChange={(event) => {
+                    const par = parseBoundedInt(event.target.value, 1, 9);
+                    if (par !== null) updateHole(index, { par });
+                  }}
                 />
               </div>
             </div>
@@ -178,7 +188,7 @@ export function CourseForm({ initialCourse }: Props) {
           {initialCourse ? (
             <>
               <button className="button" type="button" onClick={duplicateCourse}>
-                <Trash2 size={18} /> Duplicate
+                <Copy size={18} /> Duplicate
               </button>
               <button className="button danger" type="button" onClick={archiveCourse}>
                 <Archive size={18} /> Archive

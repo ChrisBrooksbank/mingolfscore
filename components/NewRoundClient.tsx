@@ -3,11 +3,19 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
-import { createDefaultHoles } from "@/lib/scoring";
+import { createDefaultHoles, parseBoundedInt } from "@/lib/scoring";
 import { db, nowIso, playerColor, uid } from "@/lib/db";
 import { DEFAULT_COURSE_ID } from "@/lib/defaultCourse";
 import { useCourses, usePlayers } from "@/lib/hooks";
 import type { Course, Player, Round, RoundPlayer } from "@/lib/types";
+
+function normalizeName(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function isPlaceholderName(name: string) {
+  return /^player \d+$/i.test(name.trim());
+}
 
 function NewRoundInner() {
   const router = useRouter();
@@ -35,6 +43,17 @@ function NewRoundInner() {
       setHoleCount(selectedCourse.holeCount);
     }
   }, [selectedCourse]);
+
+  const suggestedPlayers = useMemo(() => {
+    const taken = new Set(players.map((player) => normalizeName(player.name)));
+    const unique = new Map<string, Player>();
+    for (const player of savedPlayers) {
+      const key = normalizeName(player.name);
+      if (!key || taken.has(key) || isPlaceholderName(player.name) || unique.has(key)) continue;
+      unique.set(key, player);
+    }
+    return [...unique.values()].slice(0, 6);
+  }, [players, savedPlayers]);
 
   function updatePlayer(id: string, name: string) {
     setPlayers((current) =>
@@ -82,14 +101,31 @@ function NewRoundInner() {
       }
     }
 
-    const playersToSave: Player[] = cleanPlayers.map((player) => ({
-      id: player.id,
-      name: player.name,
-      color: player.color,
-      createdAt: now,
-    }));
+    // Reuse saved player records by name so the registry does not fill up with duplicates,
+    // and skip placeholder names like "Player 2".
+    const savedByName = new Map(savedPlayers.map((player) => [normalizeName(player.name), player]));
+    const usedIds = new Set<string>();
+    const roundPlayers: RoundPlayer[] = cleanPlayers.map((player) => {
+      const existing = savedByName.get(normalizeName(player.name));
+      if (existing && !usedIds.has(existing.id)) {
+        usedIds.add(existing.id);
+        return { ...player, id: existing.id, name: existing.name };
+      }
+      return player;
+    });
 
-    await db.players.bulkPut(playersToSave);
+    const playersToSave: Player[] = roundPlayers
+      .filter((player) => !usedIds.has(player.id) && !isPlaceholderName(player.name))
+      .map((player) => ({
+        id: player.id,
+        name: player.name,
+        color: player.color,
+        createdAt: now,
+      }));
+
+    if (playersToSave.length > 0) {
+      await db.players.bulkPut(playersToSave);
+    }
 
     const round: Round = {
       id: uid(),
@@ -100,7 +136,7 @@ function NewRoundInner() {
         holeCount: course.holeCount,
         holes: course.holes,
       },
-      players: cleanPlayers,
+      players: roundPlayers,
       scores: [],
       status: "active",
       currentHole: 1,
@@ -141,7 +177,7 @@ function NewRoundInner() {
           <button className="button" type="button" onClick={() => addPlayer()}>
             <Plus size={18} /> Add player
           </button>
-          {savedPlayers.slice(0, 5).map((player) => (
+          {suggestedPlayers.map((player) => (
             <button className="pill" type="button" key={player.id} onClick={() => addPlayer(player.name)}>
               {player.name}
             </button>
@@ -189,7 +225,10 @@ function NewRoundInner() {
                   min={1}
                   max={36}
                   value={holeCount}
-                  onChange={(event) => setHoleCount(Math.max(1, Math.min(36, Number(event.target.value))))}
+                  onChange={(event) => {
+                    const count = parseBoundedInt(event.target.value, 1, 36);
+                    if (count !== null) setHoleCount(count);
+                  }}
                 />
               </div>
               <div className="field">
@@ -201,7 +240,10 @@ function NewRoundInner() {
                   min={1}
                   max={9}
                   value={defaultPar}
-                  onChange={(event) => setDefaultPar(Math.max(1, Math.min(9, Number(event.target.value))))}
+                  onChange={(event) => {
+                    const par = parseBoundedInt(event.target.value, 1, 9);
+                    if (par !== null) setDefaultPar(par);
+                  }}
                 />
               </div>
             </div>

@@ -1,13 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Copy, RotateCcw, Trophy } from "lucide-react";
+import { Check, Copy, RotateCcw, Trophy } from "lucide-react";
 import { formatScorecardShare, generateAwards, sortedTotals } from "@/lib/scoring";
 import { useRound } from "@/lib/hooks";
+import { shareLabel, shareText, type ShareOutcome } from "@/lib/share";
+import { RoundNotFound } from "@/components/RoundNotFound";
 
 export function ResultsClient({ roundId }: { roundId: string }) {
-  const { round } = useRound(roundId);
+  const { round, loaded } = useRound(roundId);
+  const [shareOutcome, setShareOutcome] = useState<ShareOutcome | null>(null);
 
+  if (!round && loaded) return <RoundNotFound />;
   if (!round) return <section className="section"><div className="panel">Loading results...</div></section>;
 
   const totals = sortedTotals(round);
@@ -16,11 +21,10 @@ export function ResultsClient({ roundId }: { roundId: string }) {
   const summary = formatScorecardShare(round);
 
   async function share() {
-    if (navigator.share) {
-      await navigator.share({ title: "Mini golf results", text: summary });
-    } else {
-      await navigator.clipboard.writeText(summary);
-    }
+    const outcome = await shareText("Mini golf results", summary);
+    if (outcome === "cancelled") return;
+    setShareOutcome(outcome);
+    window.setTimeout(() => setShareOutcome(null), 1800);
   }
 
   return (
@@ -31,9 +35,9 @@ export function ResultsClient({ roundId }: { roundId: string }) {
         <p className="lede">{round.courseSnapshot.name}</p>
         <div className="button-row">
           <button className="button primary" type="button" onClick={share}>
-            <Copy size={18} /> Share
+            {shareOutcome === "shared" || shareOutcome === "copied" ? <Check size={18} /> : <Copy size={18} />} {shareLabel(shareOutcome)}
           </button>
-          <Link className="button" href={`/new?course=${round.courseId ?? ""}`}>
+          <Link className="button" href={`/new?rematch=${round.id}`}>
             <RotateCcw size={18} /> Rematch
           </Link>
         </div>

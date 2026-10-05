@@ -11,12 +11,29 @@ import type { Course } from "@/lib/types";
 
 export function CourseDetailClient({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
   const rounds = useRounds();
 
   useEffect(() => {
-    db.courses.get(courseId).then((item) => setCourse(item ?? null));
-  }, [courseId, editing]);
+    let mounted = true;
+    db.courses.get(courseId).then((item) => {
+      if (!mounted) return;
+      setCourse(item ?? null);
+      setLoaded(true);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [courseId]);
+
+  if (!loaded) {
+    return (
+      <section className="section">
+        <div className="panel">Loading course...</div>
+      </section>
+    );
+  }
 
   if (!course) {
     return (
@@ -27,7 +44,15 @@ export function CourseDetailClient({ courseId }: { courseId: string }) {
   }
 
   if (editing) {
-    return <CourseForm initialCourse={course} />;
+    return (
+      <CourseForm
+        initialCourse={course}
+        onSaved={(saved) => {
+          setCourse(saved);
+          setEditing(false);
+        }}
+      />
+    );
   }
 
   const courseRounds = rounds.filter((round) => round.courseId === course.id && round.status === "complete");

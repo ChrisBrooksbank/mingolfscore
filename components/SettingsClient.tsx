@@ -1,10 +1,32 @@
 "use client";
 
+import { useState } from "react";
 import { Download, Trash2, Upload } from "lucide-react";
 import { db } from "@/lib/db";
 import type { Course, Player, Round } from "@/lib/types";
 
+type Backup = {
+  players?: Player[];
+  courses?: Course[];
+  rounds?: Round[];
+};
+
+function parseBackup(text: string): Backup {
+  const payload: unknown = JSON.parse(text);
+  if (!payload || typeof payload !== "object") throw new Error("Not a backup file");
+  const { players, courses, rounds } = payload as Record<string, unknown>;
+  const isRecordList = (value: unknown) =>
+    value === undefined ||
+    (Array.isArray(value) && value.every((item) => item && typeof item === "object" && typeof (item as { id?: unknown }).id === "string"));
+  if (!isRecordList(players) || !isRecordList(courses) || !isRecordList(rounds) || (!players && !courses && !rounds)) {
+    throw new Error("Not a backup file");
+  }
+  return { players, courses, rounds } as Backup;
+}
+
 export function SettingsClient() {
+  const [message, setMessage] = useState<string | null>(null);
+
   async function exportData() {
     const payload = {
       exportedAt: new Date().toISOString(),
@@ -18,17 +40,19 @@ export function SettingsClient() {
     link.href = url;
     link.download = `mini-golf-score-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
-    URL.revokeObjectURL(url);
+    // Revoking synchronously can cancel the download in some browsers.
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   async function importData(file: File | null) {
     if (!file) return;
-    const text = await file.text();
-    const payload = JSON.parse(text) as {
-      players?: Player[];
-      courses?: Course[];
-      rounds?: Round[];
-    };
+    let payload: Backup;
+    try {
+      payload = parseBackup(await file.text());
+    } catch {
+      setMessage("That file is not a Mini Golf Score backup.");
+      return;
+    }
 
     await db.transaction("rw", db.players, db.courses, db.rounds, async () => {
       if (payload.players) await db.players.bulkPut(payload.players);
@@ -68,13 +92,19 @@ export function SettingsClient() {
               type="file"
               accept="application/json"
               hidden
-              onChange={(event) => importData(event.target.files?.[0] ?? null)}
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                // Reset so choosing the same file again still triggers a change.
+                event.target.value = "";
+                void importData(file);
+              }}
             />
           </label>
           <button className="button danger" type="button" onClick={clearData}>
             <Trash2 size={18} /> Clear local data
           </button>
         </div>
+        {message ? <p className="muted" role="alert">{message}</p> : null}
       </div>
 
       <div className="panel">

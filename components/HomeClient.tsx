@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { Flag, History, MapPin, Trophy } from "lucide-react";
 import { useCourses, useRounds } from "@/lib/hooks";
-import { sortedTotals } from "@/lib/scoring";
+import { completedRoundsNewestFirst, sortedTotals } from "@/lib/scoring";
 
 export function HomeClient() {
   const rounds = useRounds();
   const courses = useCourses();
   const activeRound = rounds.find((round) => round.status === "active");
-  const completed = rounds.filter((round) => round.status === "complete");
+  const completed = completedRoundsNewestFirst(rounds);
   const lastRound = completed[0];
   const lastWinner = lastRound ? sortedTotals(lastRound)[0] : null;
 

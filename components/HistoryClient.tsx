@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { Calendar, Trophy } from "lucide-react";
 import { useRounds } from "@/lib/hooks";
-import { sortedTotals } from "@/lib/scoring";
+import { completedRoundsNewestFirst, sortedTotals } from "@/lib/scoring";
 
 export function HistoryClient() {
-  const rounds = useRounds().filter((round) => round.status === "complete");
+  const rounds = completedRoundsNewestFirst(useRounds());
 
   return (
     <section className="section">

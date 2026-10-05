@@ -1,4 +1,4 @@
-const CACHE_NAME = "mingolfscore-shell-v1";
+const CACHE_NAME = "mingolfscore-shell-v2";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icons/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -21,17 +21,28 @@ self.addEventListener("message", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  const { request } = event;
+  if (request.method !== "GET" || !request.url.startsWith(self.location.origin)) return;
 
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then((response) => {
-        const copy = response.clone();
-        if (event.request.url.startsWith(self.location.origin)) {
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        // Never cache error pages or partial responses; they would be served offline later.
+        if (response.ok && response.status === 200) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/"))),
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        // Only page navigations fall back to the app shell; returning HTML for a
+        // script, style, or data request would break the page in confusing ways.
+        if (request.mode === "navigate") {
+          return (await caches.match("/")) || Response.error();
+        }
+        return Response.error();
+      }),
   );
 });

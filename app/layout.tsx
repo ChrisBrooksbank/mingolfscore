@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { ChartNoAxesColumn, Flag, Home, Map } from "lucide-react";
+import { ChartNoAxesColumn, Flag, Home, Map, Settings } from "lucide-react";
 import "@/app/globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
 
@@ -53,7 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span>History</span>
           </Link>
           <Link href="/settings">
-            <Flag size={19} />
+            <Settings size={19} />
             <span>Settings</span>
           </Link>
         </nav>

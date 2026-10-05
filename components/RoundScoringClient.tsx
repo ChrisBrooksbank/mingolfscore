@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronLeft, ChevronRight, Minus, Plus, Trophy } from "lucide-react";
 import { completeRound, getScore, isRoundComplete, setScore, sortedTotals } from "@/lib/scoring";
 import { useRound } from "@/lib/hooks";
+import { RoundNotFound } from "@/components/RoundNotFound";
 
 export function RoundScoringClient({ roundId }: { roundId: string }) {
-  const { round, save } = useRound(roundId);
+  const router = useRouter();
+  const { round, loaded, save } = useRound(roundId);
 
+  if (!round && loaded) return <RoundNotFound />;
   if (!round) {
     return <section className="section"><div className="panel">Loading round...</div></section>;
   }
@@ -33,7 +37,7 @@ export function RoundScoringClient({ roundId }: { roundId: string }) {
     if (!isRoundComplete(currentRound)) return;
     const completed = completeRound(currentRound);
     await save(completed);
-    window.location.href = `/round/${currentRound.id}/results`;
+    router.push(`/round/${currentRound.id}/results`);
   }
 
   return (

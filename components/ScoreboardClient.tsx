@@ -5,11 +5,13 @@ import Link from "next/link";
 import { Check, ChevronLeft, Share2, Trophy } from "lucide-react";
 import { formatDelta, formatScorecardShare, getScore, setScore, sortedTotals } from "@/lib/scoring";
 import { useRound } from "@/lib/hooks";
+import { RoundNotFound } from "@/components/RoundNotFound";
 
 export function ScoreboardClient({ roundId }: { roundId: string }) {
-  const { round, save } = useRound(roundId);
+  const { round, loaded, save } = useRound(roundId);
   const [shared, setShared] = useState(false);
 
+  if (!round && loaded) return <RoundNotFound />;
   if (!round) return <section className="section"><div className="panel">Loading scoreboard...</div></section>;
 
   const currentRound = round;

@@ -59,11 +59,16 @@ export function usePlayers() {
 
 export function useRound(roundId: string) {
   const [round, setRound] = useState<Round | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    setLoaded(false);
     db.rounds.get(roundId).then((item) => {
-      if (mounted) setRound(item ?? null);
+      if (mounted) {
+        setRound(item ?? null);
+        setLoaded(true);
+      }
     });
     return () => {
       mounted = false;
@@ -75,5 +80,5 @@ export function useRound(roundId: string) {
     await db.rounds.put(nextRound);
   }
 
-  return { round, save, setRound };
+  return { round, loaded, save, setRound };
 }

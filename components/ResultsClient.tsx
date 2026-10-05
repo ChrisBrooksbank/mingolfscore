@@ -4,10 +4,12 @@ import Link from "next/link";
 import { Copy, RotateCcw, Trophy } from "lucide-react";
 import { formatScorecardShare, generateAwards, sortedTotals } from "@/lib/scoring";
 import { useRound } from "@/lib/hooks";
+import { RoundNotFound } from "@/components/RoundNotFound";
 
 export function ResultsClient({ roundId }: { roundId: string }) {
-  const { round } = useRound(roundId);
+  const { round, loaded } = useRound(roundId);
 
+  if (!round && loaded) return <RoundNotFound />;
   if (!round) return <section className="section"><div className="panel">Loading results...</div></section>;
 
   const totals = sortedTotals(round);

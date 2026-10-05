@@ -9,7 +9,20 @@ export function PwaRegister() {
   useEffect(() => {
     if (!("serviceWorker" in navigator) || process.env.NODE_ENV !== "production") return;
 
+    // Only reload when an existing worker is replaced. On a first visit clients.claim()
+    // also fires controllerchange, and reloading then would wipe whatever the user was doing.
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    let reloading = false;
+    const onControllerChange = () => {
+      if (!hadController || reloading) return;
+      reloading = true;
+      window.location.reload();
+    };
+
     navigator.serviceWorker.register("/sw.js").then((registration) => {
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        setWaitingWorker(registration.waiting);
+      }
       registration.addEventListener("updatefound", () => {
         const worker = registration.installing;
         if (!worker) return;
@@ -21,9 +34,8 @@ export function PwaRegister() {
       });
     });
 
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      window.location.reload();
-    });
+    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+    return () => navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
   }, []);
 
   if (!waitingWorker) return null;

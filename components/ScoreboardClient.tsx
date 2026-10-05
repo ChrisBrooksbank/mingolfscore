@@ -5,11 +5,12 @@ import Link from "next/link";
 import { Check, ChevronLeft, Share2, Trophy } from "lucide-react";
 import { formatDelta, formatScorecardShare, getScore, setScore, sortedTotals } from "@/lib/scoring";
 import { useRound } from "@/lib/hooks";
+import { shareLabel, shareText, type ShareOutcome } from "@/lib/share";
 import { RoundNotFound } from "@/components/RoundNotFound";
 
 export function ScoreboardClient({ roundId }: { roundId: string }) {
   const { round, loaded, save } = useRound(roundId);
-  const [shared, setShared] = useState(false);
+  const [shareOutcome, setShareOutcome] = useState<ShareOutcome | null>(null);
 
   if (!round && loaded) return <RoundNotFound />;
   if (!round) return <section className="section"><div className="panel">Loading scoreboard...</div></section>;
@@ -22,14 +23,10 @@ export function ScoreboardClient({ roundId }: { roundId: string }) {
   }
 
   async function shareScorecard() {
-    const text = formatScorecardShare(currentRound);
-    if (navigator.share) {
-      await navigator.share({ title: `${currentRound.courseSnapshot.name} scorecard`, text });
-    } else {
-      await navigator.clipboard.writeText(text);
-    }
-    setShared(true);
-    window.setTimeout(() => setShared(false), 1800);
+    const outcome = await shareText(`${currentRound.courseSnapshot.name} scorecard`, formatScorecardShare(currentRound));
+    if (outcome === "cancelled") return;
+    setShareOutcome(outcome);
+    window.setTimeout(() => setShareOutcome(null), 1800);
   }
 
   return (
@@ -41,7 +38,7 @@ export function ScoreboardClient({ roundId }: { roundId: string }) {
         </div>
         <div className="button-row">
           <button className="button primary" type="button" onClick={shareScorecard}>
-            {shared ? <Check size={18} /> : <Share2 size={18} />} {shared ? "Shared" : "Share"}
+            {shareOutcome === "shared" || shareOutcome === "copied" ? <Check size={18} /> : <Share2 size={18} />} {shareLabel(shareOutcome)}
           </button>
           <Link className="button" href={`/round/${currentRound.id}`}>
             <ChevronLeft size={18} /> Scoring

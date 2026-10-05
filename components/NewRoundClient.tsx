@@ -22,7 +22,7 @@ function NewRoundInner() {
   const searchParams = useSearchParams();
   const courses = useCourses();
   const savedPlayers = usePlayers();
-  const [selectedCourseId, setSelectedCourseId] = useState(searchParams.get("course") ?? DEFAULT_COURSE_ID);
+  const [selectedCourseId, setSelectedCourseId] = useState(searchParams.get("course") || DEFAULT_COURSE_ID);
   const [courseName, setCourseName] = useState("New Course");
   const [holeCount, setHoleCount] = useState(18);
   const [defaultPar, setDefaultPar] = useState(3);
@@ -31,6 +31,23 @@ function NewRoundInner() {
     { id: uid(), name: "Player 1", color: playerColor(0) },
     { id: uid(), name: "Player 2", color: playerColor(1) },
   ]);
+
+  // Rematch: same players and course as a previous round.
+  const rematchId = searchParams.get("rematch");
+  useEffect(() => {
+    if (!rematchId) return;
+    let mounted = true;
+    db.rounds.get(rematchId).then((previous) => {
+      if (!mounted || !previous) return;
+      setPlayers(previous.players.map((player, index) => ({ id: uid(), name: player.name, color: playerColor(index) })));
+      setSelectedCourseId(previous.courseId ?? "custom");
+      setCourseName(previous.courseSnapshot.name);
+      setHoleCount(previous.courseSnapshot.holeCount);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [rematchId]);
 
   const selectedCourse = useMemo(
     () => courses.find((course) => course.id === selectedCourseId),

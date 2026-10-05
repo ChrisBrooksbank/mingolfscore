@@ -93,11 +93,12 @@ export function isRoundComplete(round: Round) {
 }
 
 export function completeRound(round: Round): Round {
+  const now = new Date().toISOString();
   return {
     ...round,
     status: "complete",
-    completedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    completedAt: round.completedAt ?? now,
+    updatedAt: now,
   };
 }
 
@@ -156,6 +157,13 @@ export function generateAwards(round: Round): RoundAward[] {
   }
 
   return awards.slice(0, 4);
+}
+
+/** Completed rounds, most recently finished first (editing an old card must not reorder history). */
+export function completedRoundsNewestFirst(rounds: Round[]) {
+  return rounds
+    .filter((round) => round.status === "complete")
+    .sort((a, b) => (b.completedAt ?? b.updatedAt).localeCompare(a.completedAt ?? a.updatedAt));
 }
 
 export function formatDelta(delta: number) {

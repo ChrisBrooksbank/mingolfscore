@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
-import { createDefaultHoles, parseBoundedInt } from "@/lib/scoring";
+import { createDefaultHoles } from "@/lib/scoring";
+import { NumberInput } from "@/components/NumberInput";
 import { db, nowIso, playerColor, uid } from "@/lib/db";
 import { DEFAULT_COURSE_ID } from "@/lib/defaultCourse";
 import { useCourses, usePlayers } from "@/lib/hooks";
@@ -235,33 +236,11 @@ function NewRoundInner() {
               </div>
               <div className="field">
                 <label htmlFor="hole-count">Holes</label>
-                <input
-                  id="hole-count"
-                  className="input"
-                  type="number"
-                  min={1}
-                  max={36}
-                  value={holeCount}
-                  onChange={(event) => {
-                    const count = parseBoundedInt(event.target.value, 1, 36);
-                    if (count !== null) setHoleCount(count);
-                  }}
-                />
+                <NumberInput id="hole-count" min={1} max={36} value={holeCount} onChange={setHoleCount} />
               </div>
               <div className="field">
                 <label htmlFor="default-par">Default par</label>
-                <input
-                  id="default-par"
-                  className="input"
-                  type="number"
-                  min={1}
-                  max={9}
-                  value={defaultPar}
-                  onChange={(event) => {
-                    const par = parseBoundedInt(event.target.value, 1, 9);
-                    if (par !== null) setDefaultPar(par);
-                  }}
-                />
+                <NumberInput id="default-par" min={1} max={9} value={defaultPar} onChange={setDefaultPar} />
               </div>
             </div>
             <label className="pill">

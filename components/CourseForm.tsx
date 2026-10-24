@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Copy, Save } from "lucide-react";
-import { createDefaultHoles, parseBoundedInt } from "@/lib/scoring";
+import { createDefaultHoles } from "@/lib/scoring";
+import { NumberInput } from "@/components/NumberInput";
 import type { Course, Hole } from "@/lib/types";
 import { db, nowIso, uid } from "@/lib/db";
 
@@ -23,9 +24,7 @@ export function CourseForm({ initialCourse, onSaved }: Props) {
 
   const visibleHoles = useMemo(() => holes.slice(0, holeCount), [holes, holeCount]);
 
-  function changeHoleCount(value: string) {
-    const count = parseBoundedInt(value, 1, 36);
-    if (count === null) return;
+  function changeHoleCount(count: number) {
     setHoleCount(count);
     setHoles((current) => {
       const next = [...current];
@@ -126,15 +125,7 @@ export function CourseForm({ initialCourse, onSaved }: Props) {
 
         <div className="field">
           <label htmlFor="hole-count">Holes</label>
-          <input
-            id="hole-count"
-            className="input"
-            type="number"
-            min={1}
-            max={36}
-            value={holeCount}
-            onChange={(event) => changeHoleCount(event.target.value)}
-          />
+          <NumberInput id="hole-count" min={1} max={36} value={holeCount} onChange={changeHoleCount} />
         </div>
 
         <div className="grid">
@@ -153,17 +144,12 @@ export function CourseForm({ initialCourse, onSaved }: Props) {
               </div>
               <div className="field">
                 <label htmlFor={`hole-par-${hole.number}`}>Par</label>
-                <input
+                <NumberInput
                   id={`hole-par-${hole.number}`}
-                  className="input"
-                  type="number"
                   min={1}
                   max={9}
                   value={hole.par}
-                  onChange={(event) => {
-                    const par = parseBoundedInt(event.target.value, 1, 9);
-                    if (par !== null) updateHole(index, { par });
-                  }}
+                  onChange={(par) => updateHole(index, { par })}
                 />
               </div>
             </div>
